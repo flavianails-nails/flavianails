@@ -223,6 +223,24 @@ select.input {
   background-color: var(--accent);
 }
 
+.time.is-taken,
+.time:disabled {
+  border-style: dashed;
+  background-color: transparent;
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.time.is-taken:hover {
+  background-color: transparent;
+}
+
+.times.is-loading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .time.is-active {
   border-color: var(--primary);
   background-color: var(--primary);

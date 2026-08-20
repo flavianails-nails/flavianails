@@ -1,0 +1,218 @@
+/* Painel da agenda — complementa styles.css */
+
+.admin-body {
+  background-color: var(--background);
+  min-height: 100vh;
+}
+
+.admin-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  background-color: color-mix(in oklab, var(--card) 80%, transparent);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-brand img {
+  border-radius: 9999px;
+  object-fit: cover;
+}
+
+.admin-brand strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.admin-brand span {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.admin-main {
+  margin: 0 auto;
+  max-width: 40rem;
+  padding: 1.5rem 1rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.admin-card {
+  padding: 1.5rem;
+}
+
+.admin-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-nav-dia {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-dia {
+  width: auto;
+  padding: 0.5rem 0.75rem;
+}
+
+.admin-p {
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.admin-erro {
+  margin: 0;
+  font-size: 0.8rem;
+  color: oklch(0.55 0.2 27);
+}
+
+.btn-ghost {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 6px);
+  background-color: transparent;
+  color: var(--foreground);
+  padding: 0.4rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-ghost:hover {
+  background-color: var(--accent);
+}
+
+/* ---------- lista de horários do dia ---------- */
+
+.admin-slots,
+.admin-proximos {
+  list-style: none;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.slot {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  padding: 0.75rem;
+}
+
+.slot-hora {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--primary);
+  min-width: 3.2rem;
+}
+
+.slot-corpo {
+  flex: 1;
+  min-width: 0;
+}
+
+.slot-nome {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.slot-detalhe {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+  word-break: break-word;
+}
+
+.slot-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+}
+
+.slot-livre {
+  border-style: dashed;
+  opacity: 0.75;
+}
+
+.slot-livre .slot-nome {
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+
+.slot-bloqueio {
+  background-color: color-mix(in oklab, var(--muted) 60%, transparent);
+}
+
+.slot-agendado {
+  border-color: color-mix(in oklab, var(--rose) 70%, transparent);
+  background-color: color-mix(in oklab, var(--secondary) 45%, transparent);
+}
+
+.etiqueta {
+  display: inline-block;
+  border-radius: 9999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  vertical-align: middle;
+  margin-left: 0.4rem;
+}
+
+.etiqueta-pendente {
+  background-color: color-mix(in oklab, var(--gold) 35%, transparent);
+  color: var(--foreground);
+}
+
+.etiqueta-confirmado {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.admin-proximos li {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.admin-proximos li:last-child {
+  border-bottom: 0;
+}
+
+.admin-proximos .quando {
+  font-weight: 500;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.carregando {
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+}

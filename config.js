@@ -22,6 +22,24 @@ window.CONFIG = {
     { name: "Mão + pé + plástica dos pés", price: "R$ 75,00" },
   ],
 
+  // ------------------------------------------------------------
+  //  Supabase — o banco que guarda a agenda.
+  // ------------------------------------------------------------
+  //  Enquanto estes dois campos estiverem vazios, o site funciona
+  //  normalmente, só que SEM bloquear horários já ocupados e sem
+  //  o painel da Flávia.
+  //
+  //  Onde achar: painel do Supabase > Project Settings > API.
+  //    url     = "Project URL"
+  //    anonKey = a chave "anon public"   ← esta pode ficar pública
+  //
+  //  NUNCA coloque aqui a chave "service_role": ela dá acesso total
+  //  ao banco e este arquivo fica visível para qualquer visitante.
+  supabase: {
+    url: "",
+    anonKey: "",
+  },
+
   // Horários oferecidos no formulário.
   times: [
     "09:00",

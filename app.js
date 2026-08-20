@@ -5,6 +5,11 @@
   var CONFIG = window.CONFIG;
   var guests = [];
   var selectedTime = "";
+  var ocupados = []; // horários já tomados na data escolhida
+  var enviando = false;
+  var mensagemAviso = null; // recado específico (ex.: horário tomado na hora)
+
+  var AVISO_PADRAO = "Preencha nome, WhatsApp, serviço, data e horário para confirmar.";
 
   var $ = function (id) {
     return document.getElementById(id);
@@ -63,8 +68,15 @@
         digits(phoneInput.value).length >= 10 &&
         serviceSelect.value &&
         dateInput.value &&
-        selectedTime,
+        selectedTime &&
+        ocupados.indexOf(selectedTime) === -1,
     );
+  }
+
+  function listaAcompanhantes() {
+    return guests.filter(function (g) {
+      return g.name || g.service;
+    });
   }
 
   function buildMessage() {
@@ -76,8 +88,7 @@
       "Data: " + formatDate(dateInput.value),
       "Horário: " + selectedTime,
     ];
-    guests.forEach(function (g, i) {
-      if (!g.name && !g.service) return;
+    listaAcompanhantes().forEach(function (g, i) {
       lines.push(
         "Acompanhante " + (i + 1) + ": " + (g.name || "—") + " — " + (g.service || "a definir"),
       );
@@ -90,18 +101,32 @@
     return text ? url + "?text=" + encodeURIComponent(text) : url;
   }
 
+  function aviso(texto) {
+    mensagemAviso = texto;
+    hint.textContent = texto;
+    hint.style.visibility = "visible";
+    hint.classList.remove("shake");
+    void hint.offsetWidth; // reinicia a animação
+    hint.classList.add("shake");
+  }
+
   /* ---------- render ---------- */
 
   function renderTimes() {
     timesBox.innerHTML = "";
     CONFIG.times.forEach(function (t) {
+      var tomado = ocupados.indexOf(t) !== -1;
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "time" + (t === selectedTime ? " is-active" : "");
+      btn.className =
+        "time" + (t === selectedTime && !tomado ? " is-active" : "") + (tomado ? " is-taken" : "");
       btn.textContent = t;
-      btn.setAttribute("aria-pressed", t === selectedTime ? "true" : "false");
+      btn.disabled = tomado;
+      btn.title = tomado ? "Horário já reservado" : "";
+      btn.setAttribute("aria-pressed", t === selectedTime && !tomado ? "true" : "false");
       btn.addEventListener("click", function () {
         selectedTime = t;
+        mensagemAviso = null; // escolheu outro horário: recado antigo sai
         renderTimes();
         update();
       });
@@ -175,10 +200,100 @@
 
   function update() {
     var ready = isReady();
-    submit.setAttribute("aria-disabled", ready ? "false" : "true");
-    submit.classList.toggle("is-disabled", !ready);
+    submit.setAttribute("aria-disabled", ready || enviando ? "false" : "true");
+    submit.classList.toggle("is-disabled", !ready || enviando);
     submit.href = ready ? waLink(buildMessage()) : "#";
-    hint.style.visibility = ready ? "hidden" : "visible";
+    if (enviando) {
+      submit.textContent = "Reservando…";
+    } else {
+      submit.textContent = "Confirmar agendamento";
+    }
+    if (ready) {
+      hint.style.visibility = "hidden";
+    } else {
+      hint.textContent = mensagemAviso || AVISO_PADRAO;
+      hint.style.visibility = "visible";
+    }
+  }
+
+  /* ---------- horários ocupados ---------- */
+
+  function carregarOcupados() {
+    ocupados = [];
+    renderTimes();
+    update();
+    if (!window.DB || !DB.ligado || !dateInput.value) return;
+
+    timesBox.classList.add("is-loading");
+    var pedidoPara = dateInput.value;
+    DB.horariosOcupados(pedidoPara)
+      .then(function (lista) {
+        // ignora resposta de uma data que a cliente já trocou
+        if (pedidoPara !== dateInput.value) return;
+        ocupados = lista;
+        if (ocupados.indexOf(selectedTime) !== -1) selectedTime = "";
+        renderTimes();
+        update();
+      })
+      .catch(function (err) {
+        // Sem conexão com o banco o site não trava: segue sem bloquear
+        // horários, e a Flávia confirma manualmente pelo WhatsApp.
+        console.error("Não foi possível ler os horários ocupados:", err);
+      })
+      .then(function () {
+        timesBox.classList.remove("is-loading");
+      });
+  }
+
+  /* ---------- envio ---------- */
+
+  function irParaWhatsApp() {
+    window.location.href = waLink(buildMessage());
+  }
+
+  function enviar(e) {
+    e.preventDefault();
+    if (enviando) return;
+    if (!isReady()) {
+      aviso(AVISO_PADRAO);
+      return;
+    }
+
+    // Sem banco configurado: comportamento antigo, vai direto pro WhatsApp.
+    if (!window.DB || !DB.ligado) {
+      irParaWhatsApp();
+      return;
+    }
+
+    enviando = true;
+    update();
+
+    DB.criarAgendamento({
+      data: dateInput.value,
+      horario: selectedTime,
+      nome: nameInput.value.trim(),
+      telefone: formatPhone(phoneInput.value),
+      servico: serviceSelect.value,
+      acompanhantes: listaAcompanhantes(),
+    })
+      .then(function () {
+        irParaWhatsApp();
+      })
+      .catch(function (err) {
+        enviando = false;
+        if (err.status === 409) {
+          // Alguém reservou este horário nos últimos segundos.
+          aviso("Esse horário acabou de ser reservado. Escolha outro, por favor.");
+          selectedTime = "";
+          carregarOcupados();
+          return;
+        }
+        // Qualquer outro problema (internet, banco fora do ar) não pode
+        // impedir a cliente de falar com a Flávia.
+        console.error("Falha ao reservar:", err);
+        update();
+        irParaWhatsApp();
+      });
   }
 
   /* ---------- init ---------- */
@@ -199,10 +314,11 @@
     phoneInput.value = formatPhone(phoneInput.value);
     update();
   });
-  [nameInput, serviceSelect, dateInput].forEach(function (el) {
+  [nameInput, serviceSelect].forEach(function (el) {
     el.addEventListener("input", update);
     el.addEventListener("change", update);
   });
+  dateInput.addEventListener("change", carregarOcupados);
 
   $("add-guest").addEventListener("click", function () {
     guests.push({ name: "", service: "" });
@@ -210,15 +326,7 @@
     update();
   });
 
-  submit.addEventListener("click", function (e) {
-    if (!isReady()) {
-      e.preventDefault();
-      hint.classList.remove("shake");
-      // reinicia a animação
-      void hint.offsetWidth;
-      hint.classList.add("shake");
-    }
-  });
+  submit.addEventListener("click", enviar);
 
   $("booking-form").addEventListener("submit", function (e) {
     e.preventDefault();

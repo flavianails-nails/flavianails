@@ -1,33 +1,87 @@
 # Flávia Nails — site de agendamento
 
 Site estático (HTML + CSS + JavaScript puro, **sem build**) com formulário de
-agendamento que envia a mensagem pronta para o WhatsApp da Flávia.
+agendamento que envia a mensagem pronta para o WhatsApp da Flávia, bloqueia
+horários já ocupados e tem um painel para ela controlar a agenda.
+
+- Site: https://flavianails-nails.github.io/flavianails/
+- Painel: https://flavianails-nails.github.io/flavianails/admin.html
 
 ```
-index.html      → a página
-styles.css      → visual (cores, fontes, layout)
-config.js       → ⚙️ número do WhatsApp, serviços e horários
-app.js          → lógica do formulário e do link do WhatsApp
-assets/         → imagens (hero-nails.jpg, favicon.png, logo.jpg)
-lovable-source/ → projeto React original exportado do Lovable (não é publicado)
+index.html      -> a página das clientes
+admin.html      -> painel da agenda (só a Flávia entra)
+styles.css      -> visual do site
+admin.css       -> visual do painel
+config.js       -> WhatsApp, serviços, horários e chaves do Supabase
+db.js           -> conversa com o banco (Supabase) via REST
+app.js          -> lógica do formulário e do link do WhatsApp
+admin.js        -> lógica do painel
+supabase.sql    -> cria a tabela e as permissões no Supabase (rodar 1 vez)
+assets/         -> imagens (logo.jpg, hero-nails.jpg, favicon.png)
+lovable-source/ -> projeto React original exportado do Lovable (não é publicado)
 ```
 
 ## Como o WhatsApp funciona
 
-A cliente preenche o formulário e clica em **Confirmar agendamento**. O site monta
-um link `https://wa.me/<número>?text=<mensagem>` e abre o WhatsApp já com o texto
-pronto — nome, telefone, serviço, data, horário e acompanhantes. A cliente toca em
-enviar e a mensagem chega **direto no WhatsApp da Flávia**, na conversa normal.
+A cliente preenche o formulário e clica em **Confirmar agendamento**. O site
+reserva o horário no banco e abre o WhatsApp já com o texto pronto: nome,
+telefone, serviço, data, horário e acompanhantes. Ela toca em enviar e a
+mensagem chega **direto no WhatsApp da Flávia**, na conversa normal.
 
 Isso é o *WhatsApp Click to Chat*, o mecanismo oficial da Meta para sites. É
-gratuito, não precisa de servidor, não precisa de aprovação e funciona no celular
-e no computador.
+gratuito, não precisa de servidor, não precisa de aprovação e funciona no
+celular e no computador.
 
-> A *WhatsApp Business Cloud API* (envio automático, chatbot, mensagens em massa)
-> é outra coisa: exige conta Meta Business verificada, um número dedicado, um
-> servidor rodando 24h para receber os webhooks e custa por conversa. O GitHub
-> Pages só hospeda arquivos estáticos, então não roda esse servidor. Se um dia for
-> necessário, dá para acrescentar sem trocar o site.
+> A *WhatsApp Business Cloud API* (envio automático, chatbot, mensagens em
+> massa) é outra coisa: exige conta Meta Business verificada, um número
+> dedicado, um servidor rodando 24h para receber os webhooks e custa por
+> conversa. O GitHub Pages só hospeda arquivos estáticos, então não roda esse
+> servidor. Se um dia for necessário, dá para acrescentar sem trocar o site.
+
+## Ligar a agenda (Supabase) — feito uma vez
+
+Enquanto isto não for feito, o site funciona normalmente, só que **sem bloquear
+horários** e sem o painel.
+
+1. Crie uma conta gratuita em https://supabase.com e um projeto novo.
+2. No projeto, abra **SQL Editor**, cole o conteúdo de `supabase.sql` e clique
+   em **RUN**. Isso cria a tabela `agendamentos` e as permissões.
+3. Vá em **Project Settings > API** e copie:
+   - o **Project URL**;
+   - a chave **anon public** (esta pode ficar pública; a `service_role` **não**).
+4. Cole as duas em `config.js`, no bloco `supabase`.
+5. Crie o login da Flávia em **Authentication > Users > Add user**, com e-mail e
+   senha, marcando para não exigir confirmação por e-mail. **A senha é dela** —
+   ninguém mais precisa saber, e ela não fica escrita em lugar nenhum do código.
+6. Publique:
+
+```bash
+git add -A && git commit -m "liga a agenda" && git push
+```
+
+### Por que a chave anon pode ficar pública
+
+O banco está protegido por *Row Level Security*. Com a chave anônima, o site só
+consegue **criar** um agendamento e **perguntar quais horários estão ocupados**.
+Ler nome e telefone das clientes exige estar logada. Isso está escrito nas
+políticas dentro de `supabase.sql`.
+
+## O painel da Flávia
+
+Fica em `admin.html`. Ela entra com e-mail e senha e pode:
+
+- ver o dia inteiro, horário por horário, e navegar entre os dias;
+- ver nome, telefone, serviço e acompanhantes de cada agendamento;
+- abrir o WhatsApp da cliente com um toque;
+- **confirmar** um agendamento (a cliente pediu, ela aceitou);
+- **cancelar e liberar** o horário;
+- **fechar um horário** que não vai atender (almoço, compromisso), que some da
+  tela das clientes;
+- ver a lista dos próximos agendamentos.
+
+O horário é reservado no instante em que a cliente clica em confirmar, ainda
+como **pendente**. Se ela desistir e não mandar a mensagem, o horário fica preso
+até a Flávia cancelar pelo painel — vale conferir os pendentes de vez em quando.
 
 ## Mudar número, preços ou horários
 
@@ -39,23 +93,6 @@ git add -A && git commit -m "atualiza dados" && git push
 
 O site online atualiza em cerca de 1 minuto.
 
-## Colocar no ar (GitHub Pages)
-
-1. Crie um repositório **público** em https://github.com/new — por exemplo
-   `flavianails`. Não marque "Add a README".
-2. No terminal, dentro desta pasta:
-
-```bash
-git remote add origin https://github.com/flavianails-nails/flavianails.git
-git branch -M main
-git push -u origin main
-```
-
-3. No GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a
-   branch**, escolha `main` e a pasta `/ (root)` e clique em **Save**.
-4. Em 1–2 minutos o site fica em
-   `https://flavianails-nails.github.io/flavianails/`.
-
 ## Ver o site no computador antes de publicar
 
 ```bash
@@ -63,3 +100,8 @@ python -m http.server 8765
 ```
 
 Depois abra http://127.0.0.1:8765 no navegador.
+
+## Publicação
+
+Já está configurado: GitHub Pages servindo o branch `main`, pasta raiz. Todo
+`git push` publica automaticamente, em cerca de 1 minuto.
