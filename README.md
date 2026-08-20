@@ -134,6 +134,14 @@ Em `config.js`, `diasAbertos: 15` limita o calendário da cliente a hoje + 15
 dias. A janela **anda sozinha todo dia** — não precisa reabrir nada
 periodicamente. Para dar mais ou menos prazo, mude só esse número.
 
+## Antecedência mínima
+
+Em `config.js`, `antecedenciaMinutos: 10` esconde os horários que estão perto
+demais: às 13h52 as 14:00 já não aparecem. Vale só para o dia de hoje — nos
+outros dias a conta dá positivo sozinha. Se a cliente ficar com a página aberta,
+a lista se atualiza a cada 30 segundos, e um horário selecionado que fica em
+cima da hora é desmarcado com aviso.
+
 ## Mudar número, preços ou horários
 
 Abra `config.js`, edite e publique:

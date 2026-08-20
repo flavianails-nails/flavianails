@@ -50,6 +50,11 @@ window.CONFIG = {
   // anda sozinha todo dia, sem ninguém precisar mexer.
   diasAbertos: 15,
 
+  // Antecedência mínima, em minutos, para agendar no mesmo dia.
+  // Com 10, um horário some da tela quando faltam menos de 10 minutos para ele
+  // — ninguém consegue pedir as 14:00 às 13:55.
+  antecedenciaMinutos: 10,
+
   // Horários oferecidos no formulário.
   times: [
     "09:00",

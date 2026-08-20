@@ -62,6 +62,29 @@
     return "(" + d.slice(0, 2) + ") " + d.slice(2, 7) + "-" + d.slice(7);
   }
 
+  var ANTECEDENCIA =
+    Number(CONFIG.antecedenciaMinutos) >= 0 ? Number(CONFIG.antecedenciaMinutos) : 10;
+
+  // Momento exato de um horário ("14:00") na data escolhida.
+  function quandoAcontece(hhmm) {
+    var d = String(dateInput.value).split("-");
+    var h = String(hhmm).split(":");
+    if (d.length !== 3 || h.length !== 2) return null;
+    return new Date(Number(d[0]), Number(d[1]) - 1, Number(d[2]), Number(h[0]), Number(h[1]), 0, 0);
+  }
+
+  // Horário só aparece se ainda faltar a antecedência mínima para ele.
+  // Vale para hoje; em qualquer outro dia da janela a conta dá positivo sozinha.
+  function aindaDaTempo(hhmm) {
+    var quando = quandoAcontece(hhmm);
+    if (!quando) return true;
+    return quando.getTime() - Date.now() >= ANTECEDENCIA * 60000;
+  }
+
+  function horariosDisponiveis() {
+    return CONFIG.times.filter(aindaDaTempo);
+  }
+
   function isReady() {
     return Boolean(
       nameInput.value.trim() &&
@@ -71,6 +94,7 @@
         dateInput.value >= dateInput.min &&
         dateInput.value <= dateInput.max &&
         selectedTime &&
+        aindaDaTempo(selectedTime) &&
         ocupados.indexOf(selectedTime) === -1,
     );
   }
@@ -103,6 +127,13 @@
     return text ? url + "?text=" + encodeURIComponent(text) : url;
   }
 
+  function elementoTexto(tag, classe, texto) {
+    var el = document.createElement(tag);
+    el.className = classe;
+    el.textContent = texto;
+    return el;
+  }
+
   function aviso(texto) {
     mensagemAviso = texto;
     hint.textContent = texto;
@@ -116,7 +147,21 @@
 
   function renderTimes() {
     timesBox.innerHTML = "";
-    CONFIG.times.forEach(function (t) {
+
+    var disponiveis = horariosDisponiveis();
+
+    if (dateInput.value && !disponiveis.length) {
+      timesBox.appendChild(
+        elementoTexto(
+          "p",
+          "sem-horario",
+          "Não há mais horário para este dia. Escolha outra data, por favor.",
+        ),
+      );
+      return;
+    }
+
+    disponiveis.forEach(function (t) {
       var tomado = ocupados.indexOf(t) !== -1;
       var btn = document.createElement("button");
       btn.type = "button";
@@ -256,6 +301,14 @@
   function enviar(e) {
     e.preventDefault();
     if (enviando) return;
+    if (selectedTime && !aindaDaTempo(selectedTime)) {
+      // A cliente demorou preenchendo e o horário chegou perto demais.
+      selectedTime = "";
+      renderTimes();
+      aviso("Esse horário está muito em cima da hora. Escolha outro, por favor.");
+      update();
+      return;
+    }
     if (!isReady()) {
       aviso(AVISO_PADRAO);
       return;
@@ -369,6 +422,25 @@
   $("booking-form").addEventListener("submit", function (e) {
     e.preventDefault();
   });
+
+  // Com a página aberta o relógio anda: um horário que faltava 12 minutos passa
+  // a faltar 9. Reavalia de meio em meio minuto para a tela não mentir.
+  setInterval(function () {
+    if (!dateInput.value) return;
+    var antes = horariosDisponiveis().length;
+    if (selectedTime && !aindaDaTempo(selectedTime)) {
+      selectedTime = "";
+      renderTimes();
+      aviso("Esse horário está muito em cima da hora. Escolha outro, por favor.");
+      update();
+      return;
+    }
+    // só redesenha se algum horário saiu da lista
+    if (antes !== timesBox.querySelectorAll(".time").length) {
+      renderTimes();
+      update();
+    }
+  }, 30000);
 
   $("wa-float").href = waLink("Olá! Vim pelo site da Flávia Nails 💗");
 
