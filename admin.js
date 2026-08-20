@@ -87,6 +87,10 @@
       b.disabled = true;
       Promise.resolve(aoClicar())
         .catch(function (err) {
+          if (err.status === 409) {
+            alert("Esse horário já está confirmado para outra pessoa.");
+            return recarregar();
+          }
           alert("Não deu certo: " + (err.message || err));
         })
         .then(function () {
@@ -293,6 +297,13 @@
     return DB.listarFuturos()
       .then(function (registros) {
         proximosBox.innerHTML = "";
+        // Horários que já estão fechados (agendamento confirmado ou bloqueio),
+        // para não oferecer Confirmar em pedido que perdeu a vaga.
+        var fechados = {};
+        (registros || []).forEach(function (r) {
+          if (r.status === "confirmado") fechados[r.data + " " + r.horario] = true;
+        });
+
         var lista = (registros || []).filter(function (r) {
           return r.tipo === "agendamento";
         });
@@ -304,9 +315,48 @@
           var li = elemento("li");
           li.appendChild(elemento("span", "quando", curta(r.data) + " · " + r.horario + " "));
           li.appendChild(document.createTextNode(r.nome + " — " + r.servico));
-          if (r.status !== "confirmado") {
-            li.appendChild(elemento("span", "etiqueta etiqueta-pendente", "pendente"));
+
+          if (r.status === "confirmado") {
+            li.appendChild(elemento("span", "etiqueta etiqueta-confirmado", "confirmado"));
+            proximosBox.appendChild(li);
+            return;
           }
+
+          li.appendChild(elemento("span", "etiqueta etiqueta-pendente", "pendente"));
+
+          var acoes = elemento("div", "slot-acoes");
+
+          if (fechados[r.data + " " + r.horario]) {
+            // O horário já foi para outra cliente: só resta responder esta.
+            li.appendChild(
+              elemento("p", "slot-detalhe", "Este horário já foi confirmado para outra pessoa."),
+            );
+          } else {
+            // Confirmar aqui fecha o horário na mesma hora, sem precisar
+            // navegar até o dia.
+            acoes.appendChild(
+              botao("Confirmar", function () {
+                return DB.confirmar(r.id).then(recarregar);
+              }),
+            );
+          }
+          var wa = linkWhats(r.telefone);
+          if (wa) {
+            var a = elemento("a", "btn-ghost", "WhatsApp");
+            a.href = wa;
+            a.target = "_blank";
+            a.rel = "noreferrer";
+            acoes.appendChild(a);
+          }
+          acoes.appendChild(
+            botao("Recusar", function () {
+              if (!confirm("Recusar o pedido de " + r.nome + " em " + curta(r.data) + " às " + r.horario + "?")) {
+                return Promise.resolve();
+              }
+              return DB.apagar(r.id).then(recarregar);
+            }),
+          );
+          li.appendChild(acoes);
           proximosBox.appendChild(li);
         });
       })
