@@ -390,6 +390,147 @@
       });
   }
 
+  /* ---------- avisos no celular (push) ---------- */
+
+  var cartaoPush = $("cartao-push");
+  var estadoPush = $("push-estado");
+  var btnLigar = $("push-ligar");
+  var btnDesligar = $("push-desligar");
+
+  function pushSuportado() {
+    return (
+      "serviceWorker" in navigator &&
+      "PushManager" in window &&
+      "Notification" in window &&
+      Boolean(CONFIG.vapidPublicKey)
+    );
+  }
+
+  // A chave VAPID viaja em base64url e o navegador exige bytes.
+  function chaveEmBytes(base64url) {
+    var base64 = (base64url + "===".slice((base64url.length + 3) % 4))
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+    var bruto = atob(base64);
+    var bytes = new Uint8Array(bruto.length);
+    for (var i = 0; i < bruto.length; i++) bytes[i] = bruto.charCodeAt(i);
+    return bytes;
+  }
+
+  function nomeDoAparelho() {
+    var ua = navigator.userAgent;
+    if (/iPhone|iPad/.test(ua)) return "iPhone";
+    if (/Android/.test(ua)) return "Android";
+    return "Computador";
+  }
+
+  function mostrarEstadoPush() {
+    if (!pushSuportado()) {
+      cartaoPush.hidden = true;
+      return;
+    }
+    cartaoPush.hidden = false;
+    estadoPush.textContent = "Verificando…";
+
+    // Em alguns navegadores o service worker nunca fica pronto (aba privada,
+    // navegador embutido). Sem esse limite o cartão ficaria pendurado.
+    var pronto = Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise(function (_, falhou) {
+        setTimeout(function () {
+          falhou(new Error("service worker não respondeu"));
+        }, 5000);
+      }),
+    ]);
+
+    pronto
+      .then(function (reg) {
+        return reg.pushManager.getSubscription();
+      })
+      .then(function (assinatura) {
+        var ligado = Boolean(assinatura);
+        btnLigar.hidden = ligado;
+        btnDesligar.hidden = !ligado;
+
+        if (ligado) {
+          estadoPush.textContent =
+            "Ativado neste aparelho. Você recebe um aviso assim que uma cliente pedir horário.";
+          return;
+        }
+        if (Notification.permission === "denied") {
+          estadoPush.textContent =
+            "Os avisos estão bloqueados nas configurações do navegador para este site. " +
+            "Libere as notificações por lá e volte aqui.";
+          btnLigar.hidden = true;
+          return;
+        }
+        estadoPush.textContent =
+          "Receba um aviso no celular assim que chegar um pedido, mesmo sem abrir o app.";
+      })
+      .catch(function () {
+        cartaoPush.hidden = true;
+      });
+  }
+
+  function ligarPush() {
+    btnLigar.disabled = true;
+    estadoPush.textContent = "Pedindo permissão…";
+
+    Notification.requestPermission()
+      .then(function (resposta) {
+        if (resposta !== "granted") throw new Error("permissão negada");
+        return navigator.serviceWorker.ready;
+      })
+      .then(function (reg) {
+        return reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: chaveEmBytes(CONFIG.vapidPublicKey),
+        });
+      })
+      .then(function (assinatura) {
+        return DB.salvarAssinatura(assinatura, nomeDoAparelho());
+      })
+      .then(function () {
+        mostrarEstadoPush();
+      })
+      .catch(function (err) {
+        estadoPush.textContent =
+          err && /negada/.test(err.message)
+            ? "Você recusou a permissão. Para ativar, libere as notificações nas configurações do site."
+            : "Não consegui ativar: " + (err.message || err);
+      })
+      .then(function () {
+        btnLigar.disabled = false;
+      });
+  }
+
+  function desligarPush() {
+    btnDesligar.disabled = true;
+    navigator.serviceWorker.ready
+      .then(function (reg) {
+        return reg.pushManager.getSubscription();
+      })
+      .then(function (assinatura) {
+        if (!assinatura) return;
+        var endpoint = assinatura.endpoint;
+        return assinatura.unsubscribe().then(function () {
+          return DB.apagarAssinatura(endpoint);
+        });
+      })
+      .then(function () {
+        mostrarEstadoPush();
+      })
+      .catch(function (err) {
+        estadoPush.textContent = "Não consegui desativar: " + (err.message || err);
+      })
+      .then(function () {
+        btnDesligar.disabled = false;
+      });
+  }
+
+  if (btnLigar) btnLigar.addEventListener("click", ligarPush);
+  if (btnDesligar) btnDesligar.addEventListener("click", desligarPush);
+
   /* ---------- login ---------- */
 
   function exigirLogin() {
@@ -413,6 +554,7 @@
         mostrar("agenda");
         $("quem").textContent = "conectada";
         if (!diaInput.value) diaInput.value = hojeISO();
+        mostrarEstadoPush();
         return carregarDia().then(carregarProximos);
       })
       .catch(function () {

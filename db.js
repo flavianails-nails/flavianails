@@ -215,6 +215,29 @@
     });
   }
 
+  /* ---------- notificações push ---------- */
+
+  function salvarAssinatura(assinatura, aparelho) {
+    var j = assinatura.toJSON();
+    return admin("/rest/v1/push_assinaturas", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({
+        endpoint: j.endpoint,
+        p256dh: (j.keys && j.keys.p256dh) || "",
+        auth: (j.keys && j.keys.auth) || "",
+        aparelho: aparelho || "",
+      }),
+    });
+  }
+
+  function apagarAssinatura(endpoint) {
+    return admin("/rest/v1/push_assinaturas?endpoint=eq." + encodeURIComponent(endpoint), {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal" },
+    });
+  }
+
   window.DB = {
     ligado: LIGADO,
     horariosOcupados: horariosOcupados,
@@ -228,5 +251,7 @@
     confirmar: confirmar,
     apagar: apagar,
     bloquear: bloquear,
+    salvarAssinatura: salvarAssinatura,
+    apagarAssinatura: apagarAssinatura,
   };
 })();

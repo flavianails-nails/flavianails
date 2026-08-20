@@ -10,7 +10,7 @@
  * agenda é informação viva, não pode vir de cache.
  */
 
-var VERSAO = "flavianails-v5";
+var VERSAO = "flavianails-v6";
 
 // A "casca" do app: o suficiente para a tela abrir offline.
 var ARQUIVOS = [
@@ -103,5 +103,55 @@ self.addEventListener("fetch", function (evento) {
           return Response.error();
         });
       }),
+  );
+});
+
+/* ------------------------------------------------------------
+ *  Notificações
+ * ------------------------------------------------------------
+ *  O aviso chega sem conteúdo: o texto é montado aqui, no celular.
+ *  Assim nenhum dado de cliente passa pelo servidor do Google/Apple.
+ */
+
+self.addEventListener("push", function (evento) {
+  var texto = "Toque para abrir a agenda.";
+  if (evento.data) {
+    try {
+      var dados = evento.data.json();
+      if (dados && dados.corpo) texto = dados.corpo;
+    } catch (e) {
+      var bruto = evento.data.text();
+      if (bruto) texto = bruto;
+    }
+  }
+
+  evento.waitUntil(
+    self.registration.showNotification("Novo pedido de agendamento", {
+      body: texto,
+      icon: "./assets/icon-192.png",
+      badge: "./assets/icon-192.png",
+      tag: "novo-agendamento",
+      renotify: true,
+      data: { url: "./admin.html" },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", function (evento) {
+  evento.notification.close();
+  var destino = new URL(
+    (evento.notification.data && evento.notification.data.url) || "./admin.html",
+    self.location.href,
+  ).href;
+
+  evento.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (janelas) {
+      for (var i = 0; i < janelas.length; i++) {
+        if (janelas[i].url.indexOf("admin") !== -1 && "focus" in janelas[i]) {
+          return janelas[i].focus();
+        }
+      }
+      return self.clients.openWindow(destino);
+    }),
   );
 });

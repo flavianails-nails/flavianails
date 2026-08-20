@@ -45,6 +45,12 @@ window.CONFIG = {
     anonKey: "sb_publishable_3Sq_QN_BgBDv14G_IKZ4BQ_nmdSZhnb",
   },
 
+  // Chave pública das notificações (VAPID). Pode ficar pública — é ela que
+  // o celular usa para conferir que o aviso veio mesmo do nosso servidor.
+  // A chave PRIVADA correspondente vive só nos segredos do Supabase.
+  vapidPublicKey:
+    "BJTDB9F0UTcnP35JZg-RKTUgHutO3hLPVeQZdzAyaYneRo3BXXcwt7CiNFuRkyaNXJw1C9Sgu_ddffrKvHSkPKw",
+
   // ------------------------------------------------------------
   //  Mensagens prontas do painel
   // ------------------------------------------------------------

@@ -33,11 +33,12 @@
     empty.textContent = "Selecione um serviço";
     select.appendChild(empty);
     CONFIG.services.forEach(function (s) {
-      var label = s.name + " — " + s.price;
       var opt = document.createElement("option");
-      opt.value = label;
-      opt.textContent = label;
-      if (label === selected) opt.selected = true;
+      // Na tela aparece com preço; o valor guardado é só o nome do serviço,
+      // porque é ele que vai na mensagem do WhatsApp e no banco.
+      opt.value = s.name;
+      opt.textContent = s.name + " — " + s.price;
+      if (s.name === selected) opt.selected = true;
       select.appendChild(opt);
     });
   }
