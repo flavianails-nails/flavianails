@@ -24,9 +24,13 @@ lovable-source/ -> projeto React original exportado do Lovable (não é publicad
 ## Como o WhatsApp funciona
 
 A cliente preenche o formulário e clica em **Confirmar agendamento**. O site
-reserva o horário no banco e abre o WhatsApp já com o texto pronto: nome,
+registra o pedido no banco e abre o WhatsApp já com o texto pronto: nome,
 telefone, serviço, data, horário e acompanhantes. Ela toca em enviar e a
 mensagem chega **direto no WhatsApp da Flávia**, na conversa normal.
+
+O pedido **não** tira o horário do ar. Ele continua aberto para outras clientes
+até a Flávia confirmar no painel — mais de uma pessoa pode pedir o mesmo
+horário, e quem decide é ela.
 
 Isso é o *WhatsApp Click to Chat*, o mecanismo oficial da Meta para sites. É
 gratuito, não precisa de servidor, não precisa de aprovação e funciona no
@@ -46,9 +50,10 @@ horários** e sem o painel.
 1. Crie uma conta gratuita em https://supabase.com e um projeto novo.
 2. No projeto, abra **SQL Editor**, cole o conteúdo de `supabase.sql` e clique
    em **RUN**. Isso cria a tabela `agendamentos` e as permissões.
-3. Vá em **Project Settings > API** e copie:
+3. Vá em **Project Settings > API keys** e copie:
    - o **Project URL**;
-   - a chave **anon public** (esta pode ficar pública; a `service_role` **não**).
+   - a chave **publishable** (`sb_publishable_...`). Esta pode ficar pública; a
+     **secret** (`sb_secret_...`) **nunca** entra no site.
 4. Cole as duas em `config.js`, no bloco `supabase`.
 5. Crie o login da Flávia em **Authentication > Users > Add user**, com e-mail e
    senha, marcando para não exigir confirmação por e-mail. **A senha é dela** —
@@ -59,9 +64,9 @@ horários** e sem o painel.
 git add -A && git commit -m "liga a agenda" && git push
 ```
 
-### Por que a chave anon pode ficar pública
+### Por que a chave publishable pode ficar pública
 
-O banco está protegido por *Row Level Security*. Com a chave anônima, o site só
+O banco está protegido por *Row Level Security*. Com a chave publishable, o site só
 consegue **criar** um agendamento e **perguntar quais horários estão ocupados**.
 Ler nome e telefone das clientes exige estar logada. Isso está escrito nas
 políticas dentro de `supabase.sql`.
@@ -79,9 +84,17 @@ Fica em `admin.html`. Ela entra com e-mail e senha e pode:
   tela das clientes;
 - ver a lista dos próximos agendamentos.
 
-O horário é reservado no instante em que a cliente clica em confirmar, ainda
-como **pendente**. Se ela desistir e não mandar a mensagem, o horário fica preso
-até a Flávia cancelar pelo painel — vale conferir os pendentes de vez em quando.
+### Como o horário fecha
+
+Cada pedido entra como **pendente** e não bloqueia nada. Quando a Flávia
+**confirma** um deles, aquele horário sai do ar para todo mundo: o banco tem um
+índice único que só admite um confirmado por data e horário, e um gatilho que
+recusa qualquer pedido novo em horário já confirmado — inclusive de uma página
+que ficou aberta no celular antes do fechamento.
+
+Se houver outros pedidos no mesmo horário, o painel continua mostrando eles,
+com um aviso para a Flávia responder a essas clientes. Ela recusa cada um com
+um toque.
 
 ## Mudar número, preços ou horários
 
