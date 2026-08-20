@@ -10,7 +10,7 @@
  * agenda é informação viva, não pode vir de cache.
  */
 
-var VERSAO = "flavianails-v3";
+var VERSAO = "flavianails-v4";
 
 // A "casca" do app: o suficiente para a tela abrir offline.
 var ARQUIVOS = [
@@ -70,8 +70,22 @@ self.addEventListener("fetch", function (evento) {
   var mesmaOrigem = new URL(pedido.url).origin === self.location.origin;
   if (!mesmaOrigem) return;
 
+  // cache: "reload" ignora o cache HTTP do navegador. O GitHub Pages manda
+  // guardar os arquivos por 10 minutos, e sem isso uma correção recém-publicada
+  // demorava para aparecer no celular.
+  // Pedido de navegação não aceita ser reconstruído em alguns navegadores,
+  // então nesse caso vai como veio.
+  var busca = pedido;
+  if (pedido.mode !== "navigate") {
+    try {
+      busca = new Request(pedido, { cache: "reload" });
+    } catch (e) {
+      busca = pedido;
+    }
+  }
+
   evento.respondWith(
-    fetch(pedido)
+    fetch(busca)
       .then(function (resposta) {
         if (resposta && resposta.ok) {
           var copia = resposta.clone();

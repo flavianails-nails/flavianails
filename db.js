@@ -172,7 +172,13 @@
   }
 
   function listarFuturos() {
-    var hoje = new Date().toISOString().slice(0, 10);
+    // Precisa ser a data do relógio local. Com toISOString() o Brasil (UTC-3)
+    // já vira "amanhã" às 21h, e os agendamentos do fim do dia sumiam da lista.
+    var d = new Date();
+    var pad = function (n) {
+      return String(n).padStart(2, "0");
+    };
+    var hoje = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
     return admin(
       "/rest/v1/agendamentos?data=gte." + hoje + "&order=data.asc,horario.asc",
       { method: "GET" },
