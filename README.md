@@ -134,6 +134,16 @@ Em `config.js`, `diasAbertos: 15` limita o calendário da cliente a hoje + 15
 dias. A janela **anda sozinha todo dia** — não precisa reabrir nada
 periodicamente. Para dar mais ou menos prazo, mude só esse número.
 
+## Mensagens prontas do painel
+
+Os botões verdes de WhatsApp abrem a conversa da cliente com o texto já escrito
+— a Flávia só aperta enviar. Os modelos ficam em `config.js`, em `mensagens`,
+e aceitam `{nome}`, `{data}`, `{hora}` e `{servico}`:
+
+- **Responder** (pedido pendente) → "recebi seu pedido, já confirmo"
+- **Avisar confirmação** (já confirmado) → "seu horário está confirmado"
+- **Não vai dar** (pedido pendente) → recusa pedindo outro horário
+
 ## Antecedência mínima
 
 Em `config.js`, `antecedenciaMinutos: 10` esconde os horários que estão perto

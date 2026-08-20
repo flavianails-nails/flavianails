@@ -45,6 +45,22 @@ window.CONFIG = {
     anonKey: "sb_publishable_3Sq_QN_BgBDv14G_IKZ4BQ_nmdSZhnb",
   },
 
+  // ------------------------------------------------------------
+  //  Mensagens prontas do painel
+  // ------------------------------------------------------------
+  //  Ao tocar num botão de WhatsApp no painel, a conversa da cliente abre
+  //  com um destes textos já escrito — a Flávia só aperta enviar.
+  //  Peças que são trocadas pelos dados do agendamento:
+  //    {nome}  {data}  {hora}  {servico}
+  mensagens: {
+    recebido:
+      "Oi {nome}! Recebi seu pedido para {data} às {hora} 💗 Já confirmo pra você.",
+    confirmado:
+      "Oi {nome}! Seu horário está confirmado 💗\n{data} às {hora} — {servico}\nAté lá!",
+    recusado:
+      "Oi {nome}! Infelizmente {data} às {hora} não vai dar 😔 Me diga outro horário que eu encaixo pra você 💗",
+  },
+
   // Por quantos dias à frente a agenda fica aberta.
   // Com 15, a cliente só escolhe entre hoje e os próximos 15 dias — a janela
   // anda sozinha todo dia, sem ninguém precisar mexer.

@@ -10,7 +10,7 @@
  * agenda é informação viva, não pode vir de cache.
  */
 
-var VERSAO = "flavianails-v4";
+var VERSAO = "flavianails-v5";
 
 // A "casca" do app: o suficiente para a tela abrir offline.
 var ARQUIVOS = [

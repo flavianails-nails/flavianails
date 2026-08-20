@@ -59,11 +59,35 @@
     return String(t).replace(/\D/g, "");
   }
 
-  function linkWhats(telefone) {
+  function linkWhats(telefone, texto) {
     var d = soDigitos(telefone);
     if (!d) return null;
     if (d.length <= 11) d = "55" + d;
-    return "https://wa.me/" + d;
+    var url = "https://wa.me/" + d;
+    return texto ? url + "?text=" + encodeURIComponent(texto) : url;
+  }
+
+  // Troca {nome}, {data}, {hora} e {servico} pelos dados do agendamento.
+  function mensagemPronta(qual, reg) {
+    var modelos = CONFIG.mensagens || {};
+    var texto = modelos[qual];
+    if (!texto) return "";
+    return texto
+      .replace(/\{nome\}/g, (reg.nome || "").split(" ")[0])
+      .replace(/\{data\}/g, curta(reg.data))
+      .replace(/\{hora\}/g, reg.horario || "")
+      .replace(/\{servico\}/g, reg.servico || "");
+  }
+
+  // Link já com o texto certo para a situação do pedido.
+  function botaoWhats(reg, qual, rotulo) {
+    var url = linkWhats(reg.telefone, mensagemPronta(qual, reg));
+    if (!url) return null;
+    var a = elemento("a", "btn-ghost btn-whats", rotulo);
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noreferrer";
+    return a;
   }
 
   function mostrar(tela) {
@@ -167,13 +191,15 @@
       );
     }
 
-    var wa = linkWhats(reg.telefone);
-    if (wa) {
-      var a = elemento("a", "btn-ghost", "WhatsApp da cliente");
-      a.href = wa;
-      a.target = "_blank";
-      a.rel = "noreferrer";
-      acoes.appendChild(a);
+    var whats = reg.status === "confirmado"
+      ? botaoWhats(reg, "confirmado", "Avisar confirmação")
+      : botaoWhats(reg, "recebido", "Responder");
+    if (whats) acoes.appendChild(whats);
+
+    if (reg.status !== "confirmado") {
+      // Texto pronto para quando ela não vai conseguir atender.
+      var recusa = botaoWhats(reg, "recusado", "Não vai dar");
+      if (recusa) acoes.appendChild(recusa);
     }
 
     acoes.appendChild(
@@ -181,7 +207,11 @@
         var pergunta =
           reg.status === "confirmado"
             ? "Cancelar o agendamento de " + reg.nome + " às " + reg.horario + "?"
-            : "Recusar o pedido de " + reg.nome + " às " + reg.horario + "?";
+            : "Recusar o pedido de " +
+              reg.nome +
+              " às " +
+              reg.horario +
+              "?\n\nAvise a cliente pelo WhatsApp antes, se ainda não avisou.";
         if (!confirm(pergunta)) return Promise.resolve();
         return DB.apagar(reg.id).then(recarregar);
       }),
@@ -340,14 +370,8 @@
               }),
             );
           }
-          var wa = linkWhats(r.telefone);
-          if (wa) {
-            var a = elemento("a", "btn-ghost", "WhatsApp");
-            a.href = wa;
-            a.target = "_blank";
-            a.rel = "noreferrer";
-            acoes.appendChild(a);
-          }
+          var whats = botaoWhats(r, "recebido", "Responder");
+          if (whats) acoes.appendChild(whats);
           acoes.appendChild(
             botao("Recusar", function () {
               if (!confirm("Recusar o pedido de " + r.nome + " em " + curta(r.data) + " às " + r.horario + "?")) {

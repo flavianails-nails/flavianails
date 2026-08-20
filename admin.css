@@ -100,6 +100,16 @@
   transition: background-color 0.15s ease;
 }
 
+.btn-whats {
+  border-color: color-mix(in oklab, #25d366 55%, transparent);
+  color: #128c3e;
+  text-decoration: none;
+}
+
+.btn-whats:hover {
+  background-color: color-mix(in oklab, #25d366 14%, transparent);
+}
+
 .btn-ghost:hover {
   background-color: var(--accent);
 }
