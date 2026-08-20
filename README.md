@@ -128,6 +128,12 @@ de dar erro. As chamadas ao Supabase nunca vêm do cache — agenda é informaç
 viva. Ao mudar arquivos do painel, suba o número em `var VERSAO` no `sw.js` para
 forçar a limpeza do cache antigo.
 
+## Janela da agenda
+
+Em `config.js`, `diasAbertos: 15` limita o calendário da cliente a hoje + 15
+dias. A janela **anda sozinha todo dia** — não precisa reabrir nada
+periodicamente. Para dar mais ou menos prazo, mude só esse número.
+
 ## Mudar número, preços ou horários
 
 Abra `config.js`, edite e publique:

@@ -68,6 +68,8 @@
         digits(phoneInput.value).length >= 10 &&
         serviceSelect.value &&
         dateInput.value &&
+        dateInput.value >= dateInput.min &&
+        dateInput.value <= dateInput.max &&
         selectedTime &&
         ocupados.indexOf(selectedTime) === -1,
     );
@@ -302,13 +304,39 @@
   renderTimes();
   renderPrices();
 
-  // Não deixa escolher uma data que já passou.
-  var today = new Date();
+  // A agenda abre só para os próximos dias: nada de passado, nada de daqui a
+  // seis meses. A janela anda sozinha — amanhã ela já cobre um dia a mais.
   var pad = function (n) {
     return String(n).padStart(2, "0");
   };
-  dateInput.min =
-    today.getFullYear() + "-" + pad(today.getMonth() + 1) + "-" + pad(today.getDate());
+  var paraISO = function (d) {
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  };
+
+  var DIAS_ABERTOS = Number(CONFIG.diasAbertos) > 0 ? Number(CONFIG.diasAbertos) : 15;
+  var hoje = new Date();
+  var ultimoDia = new Date();
+  ultimoDia.setDate(ultimoDia.getDate() + DIAS_ABERTOS);
+
+  dateInput.min = paraISO(hoje);
+  dateInput.max = paraISO(ultimoDia);
+
+  var ajuda = $("janela-datas");
+  if (ajuda) {
+    ajuda.textContent =
+      "Agenda aberta até " +
+      ultimoDia.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" }) +
+      " (" +
+      DIAS_ABERTOS +
+      " dias).";
+  }
+
+  // O seletor nativo já bloqueia, mas dá para digitar a data na mão.
+  function dataDentroDaJanela() {
+    var v = dateInput.value;
+    if (!v) return true;
+    return v >= dateInput.min && v <= dateInput.max;
+  }
 
   phoneInput.addEventListener("input", function () {
     phoneInput.value = formatPhone(phoneInput.value);
@@ -318,7 +346,17 @@
     el.addEventListener("input", update);
     el.addEventListener("change", update);
   });
-  dateInput.addEventListener("change", carregarOcupados);
+  dateInput.addEventListener("change", function () {
+    if (!dataDentroDaJanela()) {
+      dateInput.value = "";
+      aviso("A agenda está aberta só até " + formatDate(dateInput.max) + ".");
+      ocupados = [];
+      renderTimes();
+      update();
+      return;
+    }
+    carregarOcupados();
+  });
 
   $("add-guest").addEventListener("click", function () {
     guests.push({ name: "", service: "" });

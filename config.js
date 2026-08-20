@@ -45,6 +45,11 @@ window.CONFIG = {
     anonKey: "sb_publishable_3Sq_QN_BgBDv14G_IKZ4BQ_nmdSZhnb",
   },
 
+  // Por quantos dias à frente a agenda fica aberta.
+  // Com 15, a cliente só escolhe entre hoje e os próximos 15 dias — a janela
+  // anda sozinha todo dia, sem ninguém precisar mexer.
+  diasAbertos: 15,
+
   // Horários oferecidos no formulário.
   times: [
     "09:00",
