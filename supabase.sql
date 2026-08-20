@@ -99,22 +99,58 @@ create policy "cliente cria agendamento"
 -- A cliente NÃO pode ler a tabela: nome e telefone das outras clientes
 -- ficam invisíveis para o site público. (Sem política de select = negado.)
 
--- A FLÁVIA (logada com e-mail e senha no painel) enxerga e controla tudo.
+-- ------------------------------------------------------------
+--  Quem é administradora
+-- ------------------------------------------------------------
+--  Estar logada NÃO basta: o cadastro do Supabase é aberto, então
+--  qualquer pessoa com a chave pública do site consegue criar uma
+--  conta. Só quem estiver nesta lista entra no painel.
+
+create table if not exists public.admins (
+  email text primary key
+);
+
+alter table public.admins enable row level security;
+-- Sem políticas: ninguém lê nem escreve esta lista pela API.
+-- Para adicionar alguém, use o SQL Editor:
+--     insert into public.admins (email) values ('email-da-flavia@exemplo.com');
+
+-- A checagem precisa ignorar o RLS da tabela acima, por isso a função
+-- é security definer.
+create or replace function public.eh_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.admins a
+    where a.email = (auth.jwt() ->> 'email')
+  )
+$$;
+
+revoke all on function public.eh_admin() from public;
+grant execute on function public.eh_admin() to authenticated;
+
+-- A FLÁVIA (na lista de admins) enxerga e controla tudo.
 drop policy if exists "admin le tudo" on public.agendamentos;
 create policy "admin le tudo"
-  on public.agendamentos for select to authenticated using (true);
+  on public.agendamentos for select to authenticated using (public.eh_admin());
 
 drop policy if exists "admin cria" on public.agendamentos;
 create policy "admin cria"
-  on public.agendamentos for insert to authenticated with check (true);
+  on public.agendamentos for insert to authenticated with check (public.eh_admin());
 
 drop policy if exists "admin edita" on public.agendamentos;
 create policy "admin edita"
-  on public.agendamentos for update to authenticated using (true) with check (true);
+  on public.agendamentos for update to authenticated
+  using (public.eh_admin()) with check (public.eh_admin());
 
 drop policy if exists "admin apaga" on public.agendamentos;
 create policy "admin apaga"
-  on public.agendamentos for delete to authenticated using (true);
+  on public.agendamentos for delete to authenticated using (public.eh_admin());
 
 -- ------------------------------------------------------------
 --  O que o site público pode perguntar

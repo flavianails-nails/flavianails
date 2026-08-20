@@ -324,12 +324,26 @@
     mostrar("login");
   }
 
+  // Estar logada não basta: o e-mail precisa estar na lista de admins do banco.
   function abrirAgenda() {
-    mostrar("agenda");
-    $("quem").textContent = "conectada";
-    if (!diaInput.value) diaInput.value = hojeISO();
-    carregarDia();
-    carregarProximos();
+    return DB.souAdmin()
+      .then(function (ok) {
+        if (!ok) {
+          DB.sair();
+          mostrar("login");
+          erroLogin.textContent =
+            "Esta conta não tem acesso à agenda. Fale com quem cuida do site.";
+          erroLogin.hidden = false;
+          return;
+        }
+        mostrar("agenda");
+        $("quem").textContent = "conectada";
+        if (!diaInput.value) diaInput.value = hojeISO();
+        return carregarDia().then(carregarProximos);
+      })
+      .catch(function () {
+        exigirLogin();
+      });
   }
 
   $("form-login").addEventListener("submit", function (e) {

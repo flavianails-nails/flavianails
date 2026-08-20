@@ -56,9 +56,19 @@ horários** e sem o painel.
      **secret** (`sb_secret_...`) **nunca** entra no site.
 4. Cole as duas em `config.js`, no bloco `supabase`.
 5. Crie o login da Flávia em **Authentication > Users > Add user**, com e-mail e
-   senha, marcando para não exigir confirmação por e-mail. **A senha é dela** —
-   ninguém mais precisa saber, e ela não fica escrita em lugar nenhum do código.
-6. Publique:
+   senha, marcando *Auto Confirm User*. **A senha é dela** — ninguém mais precisa
+   saber, e ela não fica escrita em lugar nenhum do código.
+6. Autorize esse e-mail no painel. O cadastro do Supabase é aberto: qualquer
+   pessoa com a chave pública do site consegue criar uma conta, então **estar
+   logada não basta**. Só entra quem estiver na tabela `admins`. No SQL Editor:
+
+   ```sql
+   insert into public.admins (email) values ('email-da-flavia@exemplo.com');
+   ```
+
+   Vale a pena também desligar o cadastro público em
+   **Authentication > Sign In / Providers > Email > Allow new users to sign up**.
+7. Publique:
 
 ```bash
 git add -A && git commit -m "liga a agenda" && git push
@@ -68,7 +78,8 @@ git add -A && git commit -m "liga a agenda" && git push
 
 O banco está protegido por *Row Level Security*. Com a chave publishable, o site só
 consegue **criar** um agendamento e **perguntar quais horários estão ocupados**.
-Ler nome e telefone das clientes exige estar logada. Isso está escrito nas
+Ler nome e telefone das clientes exige estar logada **e** estar na tabela
+`admins`. Isso está escrito nas
 políticas dentro de `supabase.sql`.
 
 ## O painel da Flávia

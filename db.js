@@ -153,6 +153,17 @@
     });
   }
 
+  // Estar logada não basta: o cadastro do Supabase é aberto. Isto pergunta
+  // ao banco se o e-mail da sessão está na lista de administradoras.
+  function souAdmin() {
+    return admin("/rest/v1/rpc/eh_admin", {
+      method: "POST",
+      body: "{}",
+    }).then(function (resposta) {
+      return resposta === true;
+    });
+  }
+
   function listarPorData(dia) {
     return admin(
       "/rest/v1/agendamentos?data=eq." + encodeURIComponent(dia) + "&order=horario.asc",
@@ -205,6 +216,7 @@
     entrar: entrar,
     sair: sair,
     logada: logada,
+    souAdmin: souAdmin,
     listarPorData: listarPorData,
     listarFuturos: listarFuturos,
     confirmar: confirmar,
