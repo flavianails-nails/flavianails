@@ -46,7 +46,7 @@ O site online atualiza em cerca de 1 minuto.
 2. No terminal, dentro desta pasta:
 
 ```bash
-git remote add origin https://github.com/SEU-USUARIO/flavianails.git
+git remote add origin https://github.com/flavianails-nails/flavianails.git
 git branch -M main
 git push -u origin main
 ```
@@ -54,7 +54,7 @@ git push -u origin main
 3. No GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a
    branch**, escolha `main` e a pasta `/ (root)` e clique em **Save**.
 4. Em 1–2 minutos o site fica em
-   `https://SEU-USUARIO.github.io/flavianails/`.
+   `https://flavianails-nails.github.io/flavianails/`.
 
 ## Ver o site no computador antes de publicar
 
