@@ -107,6 +107,27 @@ Se houver outros pedidos no mesmo horário, o painel continua mostrando eles,
 com um aviso para a Flávia responder a essas clientes. Ela recusa cada um com
 um toque.
 
+## Instalar o painel como app (PWA)
+
+O painel é instalável: vira um ícone na tela inicial e abre em tela cheia, sem
+barra de navegador. Não passa por App Store nem Play Store, e atualiza sozinho
+a cada `git push`.
+
+- **Android (Chrome):** abrir `admin.html` → menu ⋮ → *Instalar app* (ou
+  *Adicionar à tela inicial*).
+- **iPhone (Safari):** abrir `admin.html` → botão Compartilhar →
+  *Adicionar à Tela de Início*. Precisa ser o Safari; no iPhone o Chrome não
+  instala PWA.
+
+Peças envolvidas: `manifest-admin.json` (nome, ícones, tela cheia), `sw.js`
+(service worker) e os ícones em `assets/icon-*.png`.
+
+O service worker usa **rede primeiro, cache como reserva**: com internet ela
+sempre vê a versão mais nova; sem internet, abre a última versão guardada em vez
+de dar erro. As chamadas ao Supabase nunca vêm do cache — agenda é informação
+viva. Ao mudar arquivos do painel, suba o número em `var VERSAO` no `sw.js` para
+forçar a limpeza do cache antigo.
+
 ## Mudar número, preços ou horários
 
 Abra `config.js`, edite e publique:
