@@ -12,10 +12,6 @@ window.CONFIG = {
   // Formato: 55 (Brasil) + DDD + número, só dígitos, sem espaços ou traços.
   whatsapp: "5511910305226",
 
-  // Link do perfil do Instagram e o @ que aparece na tela.
-  instagram: "https://www.instagram.com/flavianails",
-  instagramHandle: "@flavianails",
-
   // Tabela de preços (aparece no formulário e na seção "Tabela de Preços").
   services: [
     { name: "Mão", price: "R$ 25,00" },

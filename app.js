@@ -224,11 +224,7 @@
     e.preventDefault();
   });
 
-  $("whatsapp-link").href = waLink("Olá! Vim pelo site da Flávia Nails 💗");
   $("wa-float").href = waLink("Olá! Vim pelo site da Flávia Nails 💗");
-  $("instagram-link").href = CONFIG.instagram;
-  $("instagram-handle").textContent =
-    CONFIG.instagramHandle + " — trabalhos, novidades e inspirações";
 
   update();
 })();

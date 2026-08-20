@@ -319,24 +319,6 @@ select.input {
   cursor: not-allowed;
 }
 
-.btn-outline {
-  display: inline-block;
-  margin-top: 1.5rem;
-  border: 1px solid var(--primary);
-  border-radius: calc(var(--radius) - 4px);
-  padding: 0.75rem 1.5rem;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: var(--primary);
-  text-decoration: none;
-  transition: background-color 0.15s ease;
-}
-
-.btn-outline:hover {
-  background-color: var(--accent);
-}
-
 .hint {
   margin: -0.5rem 0 0;
   text-align: center;
@@ -366,29 +348,15 @@ select.input {
   padding: 4rem 1rem;
 }
 
-.section-tight {
-  padding: 0 1rem 4rem;
-}
-
 .wrap {
   margin: 0 auto;
   max-width: 36rem;
-}
-
-.center {
-  text-align: center;
 }
 
 .section-title {
   font-size: 1.875rem;
   text-align: center;
   color: var(--primary);
-}
-
-.muted {
-  margin: 0.5rem 0 0;
-  font-size: 0.875rem;
-  color: var(--muted-foreground);
 }
 
 .price-list {
@@ -414,13 +382,6 @@ select.input {
 .price {
   font-weight: 500;
   color: var(--primary);
-}
-
-.center-card {
-  margin: 0 auto;
-  max-width: 36rem;
-  padding: 2rem;
-  text-align: center;
 }
 
 .footer {

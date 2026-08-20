@@ -6,7 +6,7 @@ agendamento que envia a mensagem pronta para o WhatsApp da Flávia.
 ```
 index.html      → a página
 styles.css      → visual (cores, fontes, layout)
-config.js       → ⚙️ número do WhatsApp, Instagram, serviços e horários
+config.js       → ⚙️ número do WhatsApp, serviços e horários
 app.js          → lógica do formulário e do link do WhatsApp
 assets/         → imagens (hero-nails.jpg, favicon.png, logo.jpg)
 lovable-source/ → projeto React original exportado do Lovable (não é publicado)
