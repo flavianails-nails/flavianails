@@ -29,15 +29,20 @@ window.CONFIG = {
   //  normalmente, só que SEM bloquear horários já ocupados e sem
   //  o painel da Flávia.
   //
-  //  Onde achar: painel do Supabase > Project Settings > API.
+  //  Onde achar: painel do Supabase > Project Settings > API keys.
   //    url     = "Project URL"
-  //    anonKey = a chave "anon public"   ← esta pode ficar pública
+  //    anonKey = a chave "publishable" (sb_publishable_...)
+  //              Esta pode ficar pública: com ela o site só consegue
+  //              criar um pedido e perguntar quais horários estão
+  //              fechados. Ver as políticas em supabase.sql.
   //
-  //  NUNCA coloque aqui a chave "service_role": ela dá acesso total
-  //  ao banco e este arquivo fica visível para qualquer visitante.
+  //  NUNCA coloque aqui a chave "secret" (sb_secret_...) nem a
+  //  "service_role": elas dão acesso total ao banco, ignoram todas as
+  //  regras de segurança, e este arquivo é visível para quem visitar
+  //  o site.
   supabase: {
-    url: "",
-    anonKey: "",
+    url: "https://rsmvwdrcrhxkhvyfknxe.supabase.co",
+    anonKey: "sb_publishable_3Sq_QN_BgBDv14G_IKZ4BQ_nmdSZhnb",
   },
 
   // Horários oferecidos no formulário.

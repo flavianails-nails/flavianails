@@ -3,6 +3,10 @@
 -- ============================================================
 --  Como usar: no painel do Supabase, abra "SQL Editor", cole
 --  este arquivo inteiro e clique em RUN. Roda uma vez só.
+--
+--  Regra principal: um pedido feito pela cliente NÃO tira o
+--  horário do ar. O horário só fica indisponível quando a
+--  Flávia confirma (ou quando ela fecha o horário).
 -- ============================================================
 
 create table if not exists public.agendamentos (
@@ -12,8 +16,8 @@ create table if not exists public.agendamentos (
   -- 'agendamento' = pedido feito por uma cliente pelo site
   -- 'bloqueio'    = horário fechado pela Flávia no painel
   tipo           text        not null default 'agendamento',
-  -- 'pendente' = cliente pediu, ainda não foi confirmado no WhatsApp
-  -- 'confirmado' = a Flávia confirmou
+  -- 'pendente'   = a cliente pediu; o horário continua aberto
+  -- 'confirmado' = a Flávia aceitou; o horário sai do ar
   status         text        not null default 'pendente',
   nome           text        not null,
   telefone       text        not null default '',
@@ -23,15 +27,52 @@ create table if not exists public.agendamentos (
   criado_em      timestamptz not null default now(),
 
   constraint agendamentos_tipo_valido check (tipo in ('agendamento', 'bloqueio')),
-  constraint agendamentos_status_valido check (status in ('pendente', 'confirmado')),
-
-  -- Garante no próprio banco que dois agendamentos nunca ocupam o mesmo
-  -- horário: se duas clientes clicarem ao mesmo tempo, a segunda recebe
-  -- erro e o site avisa na hora que o horário acabou de sair.
-  constraint agendamentos_horario_unico unique (data, horario)
+  constraint agendamentos_status_valido check (status in ('pendente', 'confirmado'))
 );
 
+-- Vários pedidos podem disputar o mesmo horário...
+alter table public.agendamentos
+  drop constraint if exists agendamentos_horario_unico;
+
+-- ...mas confirmado só pode haver um. (Horário fechado pela Flávia
+-- também entra como 'confirmado', então ocupa a vaga do mesmo jeito.)
+create unique index if not exists agendamentos_confirmado_unico
+  on public.agendamentos (data, horario)
+  where status = 'confirmado';
+
 create index if not exists agendamentos_data_idx on public.agendamentos (data);
+
+-- Barra na entrada qualquer tentativa de ocupar um horário que já
+-- está confirmado — inclusive a corrida entre dois cliques simultâneos.
+-- O código 23505 faz o Supabase responder 409, que o site já trata.
+create or replace function public.impede_horario_ocupado()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- Vale para qualquer novo registro, inclusive um pedido pendente vindo de
+  -- uma página que ficou aberta antes de a Flávia fechar o horário.
+  if exists (
+    select 1
+    from public.agendamentos a
+    where a.data = new.data
+      and a.horario = new.horario
+      and a.status = 'confirmado'
+      and a.id is distinct from new.id
+  ) then
+    raise exception 'Esse horário já está confirmado para outra pessoa.'
+      using errcode = '23505';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists agendamentos_impede_ocupado on public.agendamentos;
+create trigger agendamentos_impede_ocupado
+  before insert or update on public.agendamentos
+  for each row execute function public.impede_horario_ocupado();
 
 -- ------------------------------------------------------------
 --  Segurança (Row Level Security)
@@ -41,7 +82,7 @@ create index if not exists agendamentos_data_idx on public.agendamentos (data);
 alter table public.agendamentos enable row level security;
 
 -- A CLIENTE (chave anônima, que fica pública no site) pode apenas
--- CRIAR um agendamento — e só em data de hoje em diante.
+-- CRIAR um pedido pendente — e só de hoje em diante.
 drop policy if exists "cliente cria agendamento" on public.agendamentos;
 create policy "cliente cria agendamento"
   on public.agendamentos
@@ -78,8 +119,9 @@ create policy "admin apaga"
 -- ------------------------------------------------------------
 --  O que o site público pode perguntar
 -- ------------------------------------------------------------
---  Só isto: "quais horários já estão ocupados neste dia?".
---  Nenhum dado pessoal sai por aqui.
+--  Só isto: "quais horários já estão fechados neste dia?".
+--  Pedidos pendentes não entram — o horário continua aberto até
+--  a Flávia confirmar. Nenhum dado pessoal sai por aqui.
 
 create or replace function public.horarios_ocupados(dia date)
 returns table (horario text)
@@ -91,6 +133,7 @@ as $$
   select a.horario
   from public.agendamentos a
   where a.data = dia
+    and a.status = 'confirmado'
 $$;
 
 revoke all on function public.horarios_ocupados(date) from public;

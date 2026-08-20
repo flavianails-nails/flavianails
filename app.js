@@ -282,8 +282,8 @@
       .catch(function (err) {
         enviando = false;
         if (err.status === 409) {
-          // Alguém reservou este horário nos últimos segundos.
-          aviso("Esse horário acabou de ser reservado. Escolha outro, por favor.");
+          // A Flávia confirmou outra cliente neste horário nos últimos segundos.
+          aviso("Esse horário acabou de ser fechado. Escolha outro, por favor.");
           selectedTime = "";
           carregarOcupados();
           return;

@@ -98,6 +98,10 @@
 
   /* ---------- agenda do dia ---------- */
 
+  function recarregar() {
+    return carregarDia().then(carregarProximos);
+  }
+
   function carregarDia() {
     var dia = diaInput.value || hojeISO();
     slotsBox.innerHTML = "";
@@ -116,6 +120,73 @@
       });
   }
 
+  // Monta o cartão de um pedido de cliente dentro do horário.
+  function blocoPedido(reg, opcoes) {
+    var bloco = elemento("div", "pedido");
+
+    var nome = elemento("div", "slot-nome", reg.nome);
+    nome.appendChild(
+      elemento(
+        "span",
+        "etiqueta " + (reg.status === "confirmado" ? "etiqueta-confirmado" : "etiqueta-pendente"),
+        reg.status === "confirmado" ? "confirmado" : "pendente",
+      ),
+    );
+    bloco.appendChild(nome);
+
+    bloco.appendChild(elemento("p", "slot-detalhe", reg.servico));
+    if (reg.telefone) bloco.appendChild(elemento("p", "slot-detalhe", reg.telefone));
+
+    var acomp = reg.acompanhantes || [];
+    if (acomp.length) {
+      bloco.appendChild(
+        elemento(
+          "p",
+          "slot-detalhe",
+          "Acompanhantes: " +
+            acomp
+              .map(function (g) {
+                return (g.name || "—") + (g.service ? " (" + g.service + ")" : "");
+              })
+              .join(", "),
+        ),
+      );
+    }
+
+    var acoes = elemento("div", "slot-acoes");
+
+    if (opcoes.podeConfirmar) {
+      acoes.appendChild(
+        botao("Confirmar", function () {
+          return DB.confirmar(reg.id).then(recarregar);
+        }),
+      );
+    }
+
+    var wa = linkWhats(reg.telefone);
+    if (wa) {
+      var a = elemento("a", "btn-ghost", "WhatsApp da cliente");
+      a.href = wa;
+      a.target = "_blank";
+      a.rel = "noreferrer";
+      acoes.appendChild(a);
+    }
+
+    acoes.appendChild(
+      botao(reg.status === "confirmado" ? "Cancelar e liberar" : "Recusar", function () {
+        var pergunta =
+          reg.status === "confirmado"
+            ? "Cancelar o agendamento de " + reg.nome + " às " + reg.horario + "?"
+            : "Recusar o pedido de " + reg.nome + " às " + reg.horario + "?";
+        if (!confirm(pergunta)) return Promise.resolve();
+        return DB.apagar(reg.id).then(recarregar);
+      }),
+    );
+
+    bloco.appendChild(acoes);
+    return bloco;
+  }
+
   function desenharSlots(dia) {
     slotsBox.innerHTML = "";
 
@@ -126,104 +197,92 @@
     });
     horarios.sort();
 
-    var ocupados = 0;
+    var fechados = 0;
+    var pendentesNoDia = 0;
 
     horarios.forEach(function (hora) {
-      var reg = doDia.filter(function (r) {
+      var registros = doDia.filter(function (r) {
         return r.horario === hora;
+      });
+      // Só um registro pode estar confirmado por horário (garantido no banco).
+      var fechado = registros.filter(function (r) {
+        return r.status === "confirmado";
       })[0];
-      if (reg) ocupados++;
+      var pendentes = registros.filter(function (r) {
+        return r.status === "pendente";
+      });
 
-      var li = elemento(
-        "li",
-        "slot " +
-          (!reg ? "slot-livre" : reg.tipo === "bloqueio" ? "slot-bloqueio" : "slot-agendado"),
-      );
+      if (fechado) fechados++;
+      pendentesNoDia += pendentes.length;
+
+      var classe = !fechado && !pendentes.length
+        ? "slot-livre"
+        : fechado && fechado.tipo === "bloqueio"
+          ? "slot-bloqueio"
+          : fechado
+            ? "slot-agendado"
+            : "slot-pendente";
+
+      var li = elemento("li", "slot " + classe);
       li.appendChild(elemento("span", "slot-hora", hora));
 
       var corpo = elemento("div", "slot-corpo");
 
-      if (!reg) {
+      if (fechado && fechado.tipo === "bloqueio") {
+        corpo.appendChild(elemento("div", "slot-nome", "Horário fechado"));
+        if (fechado.observacao) {
+          corpo.appendChild(elemento("p", "slot-detalhe", fechado.observacao));
+        }
+        var acoesBloq = elemento("div", "slot-acoes");
+        acoesBloq.appendChild(
+          botao("Reabrir", function () {
+            return DB.apagar(fechado.id).then(recarregar);
+          }),
+        );
+        corpo.appendChild(acoesBloq);
+      } else if (fechado) {
+        corpo.appendChild(blocoPedido(fechado, { podeConfirmar: false }));
+      } else if (!pendentes.length) {
         corpo.appendChild(elemento("div", "slot-nome", "Livre"));
         var acoesLivre = elemento("div", "slot-acoes");
         acoesLivre.appendChild(
           botao("Fechar este horário", function () {
-            return DB.bloquear(dia, hora, "").then(carregarDia).then(carregarProximos);
+            return DB.bloquear(dia, hora, "").then(recarregar);
           }),
         );
         corpo.appendChild(acoesLivre);
-      } else if (reg.tipo === "bloqueio") {
-        corpo.appendChild(elemento("div", "slot-nome", "Horário fechado"));
-        if (reg.observacao) corpo.appendChild(elemento("p", "slot-detalhe", reg.observacao));
-        var acoesBloq = elemento("div", "slot-acoes");
-        acoesBloq.appendChild(
-          botao("Reabrir", function () {
-            return DB.apagar(reg.id).then(carregarDia).then(carregarProximos);
-          }),
-        );
-        corpo.appendChild(acoesBloq);
-      } else {
-        var nome = elemento("div", "slot-nome", reg.nome);
-        var tag = elemento(
-          "span",
-          "etiqueta " + (reg.status === "confirmado" ? "etiqueta-confirmado" : "etiqueta-pendente"),
-          reg.status === "confirmado" ? "confirmado" : "pendente",
-        );
-        nome.appendChild(tag);
-        corpo.appendChild(nome);
+      }
 
-        corpo.appendChild(elemento("p", "slot-detalhe", reg.servico));
-        if (reg.telefone) corpo.appendChild(elemento("p", "slot-detalhe", reg.telefone));
-
-        var acomp = reg.acompanhantes || [];
-        if (acomp.length) {
-          corpo.appendChild(
-            elemento(
-              "p",
-              "slot-detalhe",
-              "Acompanhantes: " +
-                acomp
-                  .map(function (g) {
-                    return (g.name || "—") + (g.service ? " (" + g.service + ")" : "");
-                  })
-                  .join(", "),
-            ),
-          );
-        }
-
-        var acoes = elemento("div", "slot-acoes");
-        if (reg.status !== "confirmado") {
-          acoes.appendChild(
-            botao("Confirmar", function () {
-              return DB.confirmar(reg.id).then(carregarDia).then(carregarProximos);
-            }),
-          );
-        }
-        var wa = linkWhats(reg.telefone);
-        if (wa) {
-          var a = elemento("a", "btn-ghost", "WhatsApp da cliente");
-          a.href = wa;
-          a.target = "_blank";
-          a.rel = "noreferrer";
-          acoes.appendChild(a);
-        }
-        acoes.appendChild(
-          botao("Cancelar e liberar", function () {
-            if (!confirm("Cancelar o agendamento de " + reg.nome + " às " + hora + "?")) {
-              return Promise.resolve();
-            }
-            return DB.apagar(reg.id).then(carregarDia).then(carregarProximos);
-          }),
+      if (pendentes.length) {
+        corpo.appendChild(
+          elemento(
+            "p",
+            "slot-aviso",
+            fechado
+              ? "Ainda há " +
+                  pendentes.length +
+                  (pendentes.length === 1 ? " pedido" : " pedidos") +
+                  " neste horário — avise a cliente."
+              : pendentes.length === 1
+                ? "1 pedido aguardando sua confirmação"
+                : pendentes.length + " pedidos disputando este horário",
+          ),
         );
-        corpo.appendChild(acoes);
+        pendentes.forEach(function (reg) {
+          corpo.appendChild(blocoPedido(reg, { podeConfirmar: !fechado }));
+        });
       }
 
       li.appendChild(corpo);
       slotsBox.appendChild(li);
     });
 
-    resumoDia.textContent =
-      porExtenso(dia) + " — " + ocupados + " de " + horarios.length + " horários ocupados";
+    var texto = porExtenso(dia) + " — " + fechados + " de " + horarios.length + " horários fechados";
+    if (pendentesNoDia) {
+      texto +=
+        " · " + pendentesNoDia + (pendentesNoDia === 1 ? " pedido pendente" : " pedidos pendentes");
+    }
+    resumoDia.textContent = texto;
   }
 
   /* ---------- próximos agendamentos ---------- */
